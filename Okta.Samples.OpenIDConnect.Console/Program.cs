@@ -80,10 +80,5 @@ namespace Okta.Samples.OpenIDConnect
             }
             return _config;
         }
-
-        private static void ValidateToken(string jwtToken)
-        {
-
-        }
     }
 }
