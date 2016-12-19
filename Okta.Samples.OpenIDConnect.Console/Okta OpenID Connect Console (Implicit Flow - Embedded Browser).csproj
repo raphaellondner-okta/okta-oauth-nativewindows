@@ -73,12 +73,6 @@
     <None Include="App.config" />
     <None Include="packages.config" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\purecloud_api_dotnet_oauth_control\src\OAuthLibrary\OAuthControl\OAuthControl.csproj">
-      <Project>{020b950d-820d-41bd-bf66-2aaf764771b0}</Project>
-      <Name>OAuthControl</Name>
-    </ProjectReference>
-  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

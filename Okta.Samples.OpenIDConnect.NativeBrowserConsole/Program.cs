@@ -22,17 +22,29 @@ using Microsoft.IdentityModel.Protocols;
 using IdentityModel.Client;
 using System.Security.Claims;
 using IdentityModel;
+using System.Net.Http;
 
 namespace Okta.Samples.OpenIDConnect
 {
     class Program
     {
-        private static OpenIdConnectConfiguration _config;
+        private const string OIDC_CONFIG_SUFFIX = "/.well-known/openid-configuration";
+
+        //the OpenID Connect configuration of the Okta organization
+        private static OpenIdConnectConfiguration _oidcConfig;
+
+        //the configuration of the Okta Authorization Server
+        private static OpenIdConnectConfiguration _authZConfig;
+
         private static string strOktaOrgUrl = string.Empty;
+        private static string strOktaAuthZServerUrl = string.Empty;
         static string strClientId = string.Empty;
         static string strRedirectUri = string.Empty;
         static string strScopes = string.Empty;
         static string strResponseType = string.Empty;
+        static string strApiEndpointUri = string.Empty;
+
+        static ClaimsIdentity currentUser;
 
         static void Main(string[] args)
         {
@@ -44,36 +56,60 @@ namespace Okta.Samples.OpenIDConnect
             Console.ReadKey();
 
             strOktaOrgUrl = ConfigurationManager.AppSettings["okta:OrganizationUrl"];
+            strOktaAuthZServerUrl = ConfigurationManager.AppSettings["okta:AuthorizationServerUrl"];
             strClientId = ConfigurationManager.AppSettings["okta:ClientId"];
             strRedirectUri = ConfigurationManager.AppSettings["okta:RedirectUri"];
             strScopes = ConfigurationManager.AppSettings["okta:Scopes"];
             strResponseType = ConfigurationManager.AppSettings["okta:ResponseType"];
+            strApiEndpointUri = ConfigurationManager.AppSettings["okta:ApiEndpointUri"];
 
-            LoadOpenIdConnectConfigurationAsync().Wait();
+            //loads the OIDC org configuration
+            _oidcConfig = LoadOpenIdConnectConfigurationAsync().Result;
+
+            if (!string.IsNullOrEmpty(strOktaAuthZServerUrl))
+            {
+                //loads the OAuth authorization server configuration
+                _authZConfig = LoadOpenIdConnectConfigurationAsync(true).Result;
+            }
 
             Program p = new Program();
-            p.doOAuth();
+            p.doOAuth().Wait();
 
+            string strKeyChar = string.Empty;
+            do
+            {
+                Console.WriteLine($"Press 'c' to call the {strApiEndpointUri} API with our Okta OAuth token");
+                strKeyChar = Console.ReadKey().KeyChar.ToString();
+                Task<string> apiOutput = p.CallApi();
+                apiOutput.Wait();
+                Console.WriteLine($"\r\nThe result from the API call is {apiOutput.Result}.");
+            }
+            while (strKeyChar == "c");
             Console.ReadKey();
         }
 
-
-        internal static async Task<OpenIdConnectConfiguration> LoadOpenIdConnectConfigurationAsync()
+        internal static async Task<OpenIdConnectConfiguration> LoadOpenIdConnectConfigurationAsync(bool bAuthorizationServer = false)
         {
-            if (_config == null)
+            var discoAddress = strOktaOrgUrl;
+            if (bAuthorizationServer)
             {
-                var discoAddress = strOktaOrgUrl + "/.well-known/openid-configuration";
-
-                var manager = new ConfigurationManager<OpenIdConnectConfiguration>(discoAddress);
-
-                _config = await manager.GetConfigurationAsync();
+                discoAddress = strOktaAuthZServerUrl;
             }
-            return _config;
+            discoAddress +=OIDC_CONFIG_SUFFIX;
+
+            OpenIdConnectConfiguration config = new OpenIdConnectConfiguration();
+             
+
+
+
+            var manager = new ConfigurationManager<OpenIdConnectConfiguration>(discoAddress);
+            config = await manager.GetConfigurationAsync();
+            return config;
         }
 
-        private async void doOAuth()
+        private async Task doOAuth()
         {
-            // Generates state and PKCE values.
+            // Generates state, nonce and PKCE values.
             string state = randomDataBase64url(32);
             string nonce = randomDataBase64url(32);
             string code_verifier = randomDataBase64url(32);
@@ -90,10 +126,14 @@ namespace Okta.Samples.OpenIDConnect
             // Creates the OAuth 2.0 authorization request
 
             // Manual way of creating the authorization request
-            // Defaulting to using the IdentityModel.AuthorizationRequest class instead
+            // Defaulting to using the IdentityModel.AuthorizationRequest class below instead
             //string authorizationRequest = $"{_config.AuthorizationEndpoint}?response_type={strResponseType}&scope={strScopes}&redirect_uri={System.Uri.EscapeDataString(redirectURI)}&client_id={strClientId}&state={state}&nonce={nonce}&code_challenge={code_challenge}&code_challenge_method=S256";
-
-            var request = new AuthorizeRequest(_config.AuthorizationEndpoint);
+            string strAuthorizationEndpointUrl = _oidcConfig.AuthorizationEndpoint;
+            if (_authZConfig != null)
+            {
+                strAuthorizationEndpointUrl = _authZConfig.AuthorizationEndpoint;
+            }
+            var request = new AuthorizeRequest(strAuthorizationEndpointUrl);
             string authorizationRequest = request.CreateAuthorizeUrl(
                 clientId: strClientId,
                 responseType: OidcConstants.ResponseTypes.Code,
@@ -113,9 +153,9 @@ namespace Okta.Samples.OpenIDConnect
             // Brings the Console to Focus.
             BringConsoleToFront();
 
-            // Sends an HTTP response to the browser.
+            // Sends an HTTP response to the browser that for 10 seconds displays the 'Please return to the console app' message. This allows the developer to catch any error
             var response = context.Response;
-            string responseString = string.Format("<html><head><meta http-equiv='refresh' content='3;url={0}'></head><body>Please return to the console app.</body></html>", strOktaOrgUrl);
+            string responseString = string.Format("<html><head><meta http-equiv='refresh' content='10;url={0}'></head><body>Please return to the console app.</body></html>", strOktaOrgUrl);
             var buffer = System.Text.Encoding.UTF8.GetBytes(responseString);
             response.ContentLength64 = buffer.Length;
             var responseOutput = response.OutputStream;
@@ -153,29 +193,43 @@ namespace Okta.Samples.OpenIDConnect
             output("Authorization code: " + code);
 
             // Starts the code exchange at the Token Endpoint.
-            performCodeExchange(code, code_verifier, strRedirectUri, state, nonce);
+            performCodeExchange(code, code_verifier);
         }
 
-        async void performCodeExchange(string code, string code_verifier, string redirectURI, string state, string nonce)
+        /// <summary>
+        /// Performs the authorization code exchange with Okta's token end point using PKCE
+        /// </summary>
+        /// <param name="code">the authorization code previously retrieved from the authorize end point</param>
+        /// <param name="code_verifier">the PKCE code previously generated during the authorize endpoint call</param>
+        async void performCodeExchange(string code, string code_verifier)
         {
             output("Exchanging code for tokens...");
 
-            // builds the  request
-            string tokenRequestURI = _config.TokenEndpoint;
+            // builds the token request
+            string tokenRequestURI = _oidcConfig.TokenEndpoint;
+            if(_authZConfig!=null)
+            {
+                tokenRequestURI = _authZConfig.TokenEndpoint;
+            }
 
-            TokenClient tokenClient = new TokenClient(tokenRequestURI,
-                strClientId);
+            TokenClient tokenClient = new TokenClient(tokenRequestURI, strClientId);
 
             var tokenResponse = await tokenClient.RequestAuthorizationCodeAsync(code, strRedirectUri, code_verifier);
 
             output("Making API Call to the UserInfo endpoint...");
+
             // use the access token to retrieve claims from userinfo
-            var userInfoClient = new UserInfoClient(_config.UserInfoEndpoint); 
+            string strUserInfoEndpoint = _oidcConfig.UserInfoEndpoint;
+            if(_authZConfig!=null)
+            {
+                strUserInfoEndpoint = _authZConfig.UserInfoEndpoint;
+            }
+            var userInfoClient = new UserInfoClient(strUserInfoEndpoint);
             var userInfoResponse = await userInfoClient.GetAsync(tokenResponse.AccessToken);
 
             var id = new ClaimsIdentity();
 
-            foreach(Claim c in userInfoResponse.Claims)
+            foreach (Claim c in userInfoResponse.Claims)
             {
                 output(string.Format("Claim {0}:{1}", c.Type, c.Value));
             }
@@ -183,9 +237,30 @@ namespace Okta.Samples.OpenIDConnect
             id.AddClaims(userInfoResponse.Claims);
             id.AddClaim(new Claim("id_token", tokenResponse.IdentityToken));
             id.AddClaim(new Claim("access_token", tokenResponse.AccessToken));
+
+            currentUser = id;
         }
 
+        private async Task<string> CallApi()
+        {
+            var client = new HttpClient();
 
+            if (currentUser.HasClaim(c => c.Type == "access_token"))
+            {
+                client.SetBearerToken(currentUser.FindFirst("access_token").Value);
+            }
+            string json = string.Empty;
+            try
+            {
+                json = await client.GetStringAsync(strApiEndpointUri);
+            }
+            catch (Exception ex)
+            {
+                string strEx = ex.ToString();
+            }
+
+            return json;
+        }
         /// <summary>
         /// Appends the given string to the on-screen log, and the debug console.
         /// </summary>
@@ -211,11 +286,11 @@ namespace Okta.Samples.OpenIDConnect
         /// <summary>
         /// Returns the SHA256 hash of the input string.
         /// </summary>
-        /// <param name="inputStirng"></param>
+        /// <param name="inputString"></param>
         /// <returns></returns>
-        public static byte[] sha256(string inputStirng)
+        public static byte[] sha256(string inputString)
         {
-            byte[] bytes = Encoding.ASCII.GetBytes(inputStirng);
+            byte[] bytes = Encoding.ASCII.GetBytes(inputString);
             SHA256Managed sha256 = new SHA256Managed();
             return sha256.ComputeHash(bytes);
         }
