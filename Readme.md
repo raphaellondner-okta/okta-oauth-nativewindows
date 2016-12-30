@@ -3,7 +3,7 @@
 The code samples available in this repository demonstrate the use of [Okta OpenID Connect](https://developer.okta.com/docs/api/resources/oidc.html)  as the authentication mechanism for Windows native apps along with [Okta API Access Management](http://developer.okta.com/docs/api/resources/oauth2.html) for authorizing access to a backend API using Okta's Authorization Servers.
 
 One native app is currently demonstrated:
-1. A [C# console application using the default browser](./tree/master/Okta.Samples.OpenIDConnect.NativeBrowserConsole) and the Authorization Code Flow (with PKCE)
+1. A [C# console application using the native browser](./tree/master/Okta.Samples.OpenIDConnect.NativeBrowserConsole) and the Authorization Code Flow (with PKCE)
 
 ## Development environment instructions
 
