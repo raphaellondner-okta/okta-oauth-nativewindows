@@ -66,7 +66,9 @@ namespace Okta.Samples.OpenIDConnect
                 Console.WriteLine($"ID Token: {form.oAuthWebBrowser1.IDToken}\r\n");
                 Console.WriteLine($"Access Token: {form.oAuthWebBrowser1.AccessToken}\r\n");
                 foreach (Claim c in form.oAuthWebBrowser1.IDClaims)
+                {
                     Console.WriteLine("{0}: {1}", c.Type, c.Value);
+                }
                 Console.WriteLine("\r\nPress any key to exit...");
                 Console.ReadKey();
             }
@@ -90,11 +92,6 @@ namespace Okta.Samples.OpenIDConnect
                 _config = await manager.GetConfigurationAsync();
             }
             return _config;
-        }
-
-        private static void ValidateToken(string jwtToken)
-        {
-
         }
     }
 }

@@ -10,10 +10,9 @@ namespace Okta.Samples.OpenIDConnect
     {
         public static string GetUniqueKey(int maxSize)
         {
-            char[] chars = new char[62];
-            chars =
+            char[] chars = 
             "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890".ToCharArray();
-            byte[] data = new byte[1];
+            byte[] data = null;
             using (RNGCryptoServiceProvider crypto = new RNGCryptoServiceProvider())
             {
                 crypto.GetNonZeroBytes(data);

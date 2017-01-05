@@ -95,12 +95,9 @@ namespace Okta.Samples.OpenIDConnect
             {
                 discoAddress = strOktaAuthZServerUrl;
             }
-            discoAddress +=OIDC_CONFIG_SUFFIX;
+            discoAddress += OIDC_CONFIG_SUFFIX;
 
             OpenIdConnectConfiguration config = new OpenIdConnectConfiguration();
-             
-
-
 
             var manager = new ConfigurationManager<OpenIdConnectConfiguration>(discoAddress);
             config = await manager.GetConfigurationAsync();
@@ -207,7 +204,7 @@ namespace Okta.Samples.OpenIDConnect
 
             // builds the token request
             string tokenRequestURI = _oidcConfig.TokenEndpoint;
-            if(_authZConfig!=null)
+            if (_authZConfig != null)
             {
                 tokenRequestURI = _authZConfig.TokenEndpoint;
             }
@@ -220,7 +217,7 @@ namespace Okta.Samples.OpenIDConnect
 
             // use the access token to retrieve claims from userinfo
             string strUserInfoEndpoint = _oidcConfig.UserInfoEndpoint;
-            if(_authZConfig!=null)
+            if (_authZConfig != null)
             {
                 strUserInfoEndpoint = _authZConfig.UserInfoEndpoint;
             }
@@ -244,19 +241,20 @@ namespace Okta.Samples.OpenIDConnect
         private async Task<string> CallApi()
         {
             var client = new HttpClient();
+            var json = string.Empty;
 
             if (currentUser.HasClaim(c => c.Type == "access_token"))
             {
                 client.SetBearerToken(currentUser.FindFirst("access_token").Value);
             }
-            string json = string.Empty;
+
             try
             {
                 json = await client.GetStringAsync(strApiEndpointUri);
             }
             catch (Exception ex)
             {
-                string strEx = ex.ToString();
+                Console.WriteLine($"An error occurred while calling {strApiEndpointUri}. The error message is: {ex.ToString()}.");
             }
 
             return json;
@@ -302,15 +300,10 @@ namespace Okta.Samples.OpenIDConnect
         /// <returns></returns>
         public static string base64urlencodeNoPadding(byte[] buffer)
         {
-            string base64 = Convert.ToBase64String(buffer);
-
-            // Converts base64 to base64url.
-            base64 = base64.Replace("+", "-");
-            base64 = base64.Replace("/", "_");
-            // Strips padding.
-            base64 = base64.Replace("=", "");
-
-            return base64;
+            return Convert.ToBase64String(buffer)
+                    .Replace("+", "-")
+                    .Replace("/", "_")
+                    .Replace("=", "");
         }
 
         // Hack to bring the Console window to front.
