@@ -8,7 +8,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Documentation", "Documentat
 		Readme.md = Readme.md
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Okta OpenID Connect Console (Code Auth Flow - Native Browser)", "Okta.Samples.OpenIDConnect.NativeBrowserConsole\Okta OpenID Connect Console (Code Auth Flow - Native Browser).csproj", "{C7A91193-48D7-415B-82FD-61D65C21F672}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Okta OpenID Connect Console (Authorization Code Flow - Native Browser)", "Okta.Samples.OpenIDConnect.NativeBrowserConsole\Okta OpenID Connect Console (Authorization Code Flow - Native Browser).csproj", "{C7A91193-48D7-415B-82FD-61D65C21F672}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
