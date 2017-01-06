@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("Okta OpenID Connect Console w/ Embedded Browser and Implicit Grant Flow")]
+[assembly: AssemblyTitle("Okta OpenID Connect Console w/ Native Browser and Authorization Code Grant Flow")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Okta, Inc.")]
-[assembly: AssemblyProduct("Okta.Samples.OpenIDConnect.Console")]
+[assembly: AssemblyProduct("Okta.Samples.OpenIDConnect.NativeBrowserConsole")]
 [assembly: AssemblyCopyright("Copyright © Okta, Inc 2016")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("DEE09757-7A4D-4958-A9F7-E5AEB7940CA1")]
+[assembly: Guid("c7a91193-48d7-415b-82fd-61d65c21f672")]
 
 // Version information for an assembly consists of the following four values:
 //
